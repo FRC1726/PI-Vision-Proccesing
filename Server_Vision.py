@@ -20,7 +20,7 @@ NetworkTables.initialize(server='10.17.26.2')
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
 
 with cond:
-    print("Waiting")
+    print("Waiting for network tables")
     if not notified[0]:
         cond.wait()
         
@@ -62,17 +62,15 @@ while True:
         table.putBoolean('Blocks Detected', True)
         
         
-        if abs(offset) <= RANGE:
-            print("center")
-        elif offset < 0:
-            print("left")
-        elif offset > 0:
-            print("right")
+#        if abs(offset) <= RANGE:
+#            print("center")
+#        elif offset < 0:
+#            print("left")
+#        elif offset > 0:
+#            print("right")
     else:
         print("No Blocks Detected")
         table.putBoolean('Blocks Detected', False)
     
-    sleep(1)
+    sleep(.025)
           
-    
-        
