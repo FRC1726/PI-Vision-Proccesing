@@ -3,6 +3,8 @@
 from pixy import *
 from ctypes import *
 from time import sleep
+import RPi.GPIO as GPIO
+import time
 
 import threading
 from networktables import NetworkTables
@@ -69,8 +71,10 @@ while True:
 #        elif offset > 0:
 #            print("right")
     else:
-        print("No Blocks Detected")
+        #print("No Blocks Detected")
         table.putBoolean('Blocks Detected', False)
     
     sleep(.025)
+    
+    
           

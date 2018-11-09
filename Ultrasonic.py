@@ -3,7 +3,35 @@
 #Libraries
 import RPi.GPIO as GPIO
 import time
+
+import threading
+from networktables import NetworkTables
+from Queue import Queue
+
+cond = threading.Condition()
+notified = [False]
+
+queueSize = 10
+window = Queue(queueSize)
+spikeThreshold = 50
+
+def connectionListener(connected, info):
+    print(info, '; Connected=%s' % connected)
+    with cond:
+        notified[0] = True
+        cond.notify()
+
+NetworkTables.initialize(server='10.17.26.2')
+NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
  
+with cond:
+    print("Waiting for network tables")
+    if not notified[0]:
+        cond.wait()
+        
+print("Let there be network tables")
+
+table = NetworkTables.getTable('SmartDashboard')
 #GPIO Mode (BOARD / BCM)
 GPIO.setmode(GPIO.BCM)
  
@@ -34,7 +62,6 @@ def distance():
     while GPIO.input(GPIO_ECHO) == 1:
         StopTime = time.time()
  
-    print("done")
     # time difference between start and arrival
     TimeElapsed = StopTime - StartTime
     # multiply with the sonic speed (34300 cm/s)
@@ -45,18 +72,29 @@ def distance():
  
 if __name__ == '__main__':
     try:
-        GPIO.output(GPIO_TRIGGER, False)
-        time.sleep(1)
+        sum = 0
+        distPrevious = 0
         while True:
-            dist = distance()
-            print ("Measured Distance = %.1f cm" % dist)
-            time.sleep(1)
+            if(not window.full()):
+                dist = distance()
+                if(abs(distPrevious - dist) < spikeThreshold):
+                    window.put(dist)
+                    sum += dist
+                    #print ("Measured Distance = %.1f cm" % dist)
+                    
+                distPrevious = dist;
+                time.sleep(.05)
+                
+            elif(window.full()):
+                table.putNumber('Distance', sum / queueSize)
+                sum -= window.get()
  
         # Reset by pressing CTRL + C
     except KeyboardInterrupt:
         print("Measurement stopped by User")
         GPIO.cleanup()
-        
-    except:
-        print("an unknown error occured")
+        # Catch all other exceptions
+    except Exception as e:
+        print("an unknown error occured:")
+        print(e)
         GPIO.cleanup()
