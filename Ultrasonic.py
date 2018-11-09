@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 
 #Libraries
+from __future__ import print_function
 import RPi.GPIO as GPIO
 import time
 
 import threading
 from networktables import NetworkTables
 from Queue import Queue
+import sys
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 cond = threading.Condition()
 notified = [False]
@@ -14,6 +19,8 @@ notified = [False]
 queueSize = 10
 window = Queue(queueSize)
 spikeThreshold = 50
+
+timeout = 1
 
 def connectionListener(connected, info):
     print(info, '; Connected=%s' % connected)
@@ -55,12 +62,21 @@ def distance():
     StopTime = time.time()
      
     # save StartTime
+    begin = time.time()
     while GPIO.input(GPIO_ECHO) == 0:
         StartTime = time.time()
+        if(time.time() - begin > timeout):
+            eprint("Timeout Exceeded")
+            return -1
+        
   
     # save time of arrival
+    begin = time.time()
     while GPIO.input(GPIO_ECHO) == 1:
         StopTime = time.time()
+        if(time.time() - begin > timeout):
+            eprint("Timeout Exceeded")
+            return -1
  
     # time difference between start and arrival
     TimeElapsed = StopTime - StartTime
@@ -96,5 +112,5 @@ if __name__ == '__main__':
         # Catch all other exceptions
     except Exception as e:
         print("an unknown error occured:")
-        print(e)
+        print (e)
         GPIO.cleanup()
